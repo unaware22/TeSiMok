@@ -60,6 +60,11 @@ function showAuth() {
                 throw new Error('Please check your email to confirm your account, then sign in.');
             }
         },
+        // Play as Guest
+        () => {
+            currentUser = null;
+            showHome();
+        }
     );
 }
 

@@ -45,18 +45,24 @@ export function onAuthStateChange(callback) {
 
 async function callEdgeFunction(name, body) {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
+
+    // We no longer throw an error if !session, to allow guests.
 
     const url = `${supabaseUrl}/functions/v1/${name}`;
     console.log(`[Edge Function] Calling: ${url}`);
 
+    const headers = {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+    };
+
+    if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
     const response = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': supabaseAnonKey,
-        },
+        headers,
         body: JSON.stringify(body),
     });
 

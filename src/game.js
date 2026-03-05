@@ -155,9 +155,10 @@ async function handleAnswer(answer, btn) {
         );
 
         // Wait, then show next question or result
-        setTimeout(() => {
+        setTimeout(async () => {
             if (result.is_last_question) {
-                showGameResult(result.won);
+                const { data: { user } } = await import('./supabase.js').then(m => m.supabase.auth.getUser());
+                showGameResult(result.won, !user);
             } else {
                 gameState.currentQuestion = result.next_question;
                 showQuestion();
@@ -192,9 +193,10 @@ async function handleTimeout() {
             gameState.streak,
         );
 
-        setTimeout(() => {
+        setTimeout(async () => {
             if (result.is_last_question) {
-                showGameResult(result.won);
+                const { data: { user } } = await import('./supabase.js').then(m => m.supabase.auth.getUser());
+                showGameResult(result.won, !user);
             } else {
                 gameState.currentQuestion = result.next_question;
                 showQuestion();
@@ -205,7 +207,7 @@ async function handleTimeout() {
     }
 }
 
-function showGameResult(won) {
+function showGameResult(won, isGuest) {
     stopTimer();
 
     if (won) {
@@ -245,6 +247,7 @@ function showGameResult(won) {
             if (onHomeFn) onHomeFn();
             else window.location.reload();
         },
+        isGuest
     );
 }
 

@@ -18,28 +18,21 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
-
         // @ts-ignore: Deno global
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         // @ts-ignore: Deno global
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
         const supabase = createClient(supabaseUrl, serviceKey);
 
-        // Verify user
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user) {
-            return new Response(JSON.stringify({ error: 'Invalid token' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+        let user = null;
+        const authHeader = req.headers.get('Authorization');
+
+        if (authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const { data, error } = await supabase.auth.getUser(token);
+            if (!error && data.user) {
+                user = data.user;
+            }
         }
 
         const { session_id, answer } = await req.json();
@@ -52,13 +45,19 @@ Deno.serve(async (req: Request) => {
         }
 
         // Get the active session
-        const { data: session, error: sessError } = await supabase
+        let query = supabase
             .from('game_sessions')
             .select('*')
             .eq('id', session_id)
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .single();
+            .eq('status', 'active');
+
+        if (user) {
+            query = query.eq('user_id', user.id);
+        } else {
+            query = query.is('user_id', null);
+        }
+
+        const { data: session, error: sessError } = await query.single();
 
         if (sessError || !session) {
             return new Response(JSON.stringify({ error: 'Invalid or expired session' }), {
@@ -163,7 +162,7 @@ Deno.serve(async (req: Request) => {
             const won = newCorrectCount >= 6;
             response.won = won;
 
-            if (won) {
+            if (won && user) {
                 // Get user display name
                 const { data: profile } = await supabase.auth.admin.getUserById(user.id);
                 const playerName = profile?.user?.user_metadata?.display_name

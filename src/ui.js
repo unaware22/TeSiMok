@@ -28,7 +28,7 @@ function clear() {
 }
 
 // ===== Auth Screen =====
-export function renderAuth(onSignIn, onSignUp) {
+export function renderAuth(onSignIn, onSignUp, onGuestPlay) {
     const app = clear();
     let isLogin = true;
 
@@ -42,6 +42,13 @@ export function renderAuth(onSignIn, onSignUp) {
             html('div', { class: 'card', style: { width: '100%' } },
                 ...buildForm(),
             ),
+            // Guest play button
+            html('div', { class: 'guest-login-divider' }, '— OR —'),
+            html('button', {
+                class: 'btn btn-ghost',
+                onClick: onGuestPlay,
+                style: { width: '100%', marginTop: '0.5rem' },
+            }, '🕵️ Play as Guest (Score not saved)'),
         );
         app.appendChild(container);
     }
@@ -134,13 +141,14 @@ export function renderAuth(onSignIn, onSignUp) {
 export function renderHome(user, onPlay, onLogout) {
     const app = clear();
 
-    const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Player';
+    const isGuest = !user;
+    const displayName = isGuest ? 'Guest' : (user.user_metadata?.display_name || user.email?.split('@')[0] || 'Player');
 
     const container = html('div', { class: 'home-container' },
         // User bar
         html('div', { class: 'user-bar' },
             html('span', { class: 'user-name' }, `👋 Hey, ${displayName}`),
-            html('button', { class: 'logout-btn', onClick: onLogout }, 'Sign out'),
+            html('button', { class: 'logout-btn', onClick: onLogout }, isGuest ? 'Sign In' : 'Sign out'),
         ),
         // Header
         html('div', { class: 'home-header' },
@@ -156,13 +164,14 @@ export function renderHome(user, onPlay, onLogout) {
                 style: { width: '100%' },
             }, 'Start Game'),
         ),
-        // Leaderboard preview
+        // Leaderboard preview (guests don't get saved, so they should be reminded)
         html('div', {
             class: 'card leaderboard-section',
             id: 'home-leaderboard',
             style: { width: '100%' },
         },
             html('h2', {}, '🏆 Leaderboard'),
+            isGuest ? html('p', { style: { fontSize: '0.85rem', color: 'var(--text-muted)' } }, 'Guest scores are not ranked.') : '',
             html('div', { class: 'spinner' }),
         ),
     );
@@ -366,12 +375,17 @@ export function showPointsPopup(points) {
 }
 
 // ===== Result Modal =====
-export function renderResultModal(won, score, correctCount, totalCount, onContinue, onRetry, onHome) {
+export function renderResultModal(won, score, correctCount, totalCount, onContinue, onRetry, onHome, isGuest = false) {
     // Remove existing modal
     const existing = document.querySelector('.modal-overlay');
     if (existing) existing.remove();
 
     const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+    let successMessage = 'Selamat! Kamu Bukanlah Suki!';
+    if (won && isGuest) {
+        successMessage = 'Selamat! Namun, skormu tidak disimpan karena ini adalah mode Guest (Sign In untuk masuk Leaderboard!).';
+    }
 
     const modal = html('div', { class: 'modal-overlay' },
         html('div', { class: 'card modal' },
@@ -379,7 +393,7 @@ export function renderResultModal(won, score, correctCount, totalCount, onContin
                 won ? '🎉 You Win!' : '💔 Game Over'),
             html('p', { class: 'subtitle' },
                 won
-                    ? 'Selamat! Kamu Bukanlah Suki!'
+                    ? successMessage
                     : `You needed 6 correct answers but got ${correctCount}. Try again!`),
             html('div', { class: 'modal-stats' },
                 html('div', { class: 'modal-stat' },

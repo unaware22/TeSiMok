@@ -20,7 +20,7 @@ CREATE INDEX idx_questions_category ON questions(category);
 -- ============================================
 CREATE TABLE IF NOT EXISTS game_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   started_at TIMESTAMPTZ DEFAULT now(),
   current_question_idx INTEGER DEFAULT 0,
   score INTEGER DEFAULT 0,

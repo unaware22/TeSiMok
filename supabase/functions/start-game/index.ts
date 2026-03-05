@@ -16,36 +16,30 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
-
+        // Create Supabase client
         // @ts-ignore: Deno global
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         // @ts-ignore: Deno global
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
         const supabase = createClient(supabaseUrl, serviceKey);
 
-        // Verify user
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user) {
-            return new Response(JSON.stringify({ error: 'Invalid token' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
+        let user = null;
+        const authHeader = req.headers.get('Authorization'); // Define authHeader here
 
-        // Abandon any active sessions for this user
-        await supabase
-            .from('game_sessions')
-            .update({ status: 'abandoned' })
-            .eq('user_id', user.id)
-            .eq('status', 'active');
+        if (authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const { data, error } = await supabase.auth.getUser(token);
+            if (!error && data.user) {
+                user = data.user;
+
+                // Abandon any active sessions for this logged-in user
+                await supabase
+                    .from('game_sessions')
+                    .update({ status: 'abandoned' })
+                    .eq('user_id', user.id)
+                    .eq('status', 'active');
+            }
+        }
 
         // Get 10 random questions
         const { data: questions, error: qError } = await supabase
@@ -71,7 +65,7 @@ Deno.serve(async (req: Request) => {
         const { data: session, error: sError } = await supabase
             .from('game_sessions')
             .insert({
-                user_id: user.id,
+                user_id: user ? user.id : null,
                 question_ids: questionIds,
                 current_question_idx: 0,
                 score: 0,

@@ -16,27 +16,20 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
-
         // @ts-ignore: Deno global
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         // @ts-ignore: Deno global
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
         const supabase = createClient(supabaseUrl, serviceKey);
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user) {
-            return new Response(JSON.stringify({ error: 'Invalid token' }), {
-                status: 401,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+        let user = null;
+        const authHeader = req.headers.get('Authorization');
+        if (authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const { data, error } = await supabase.auth.getUser(token);
+            if (!error && data.user) {
+                user = data.user;
+            }
         }
 
         const { session_id } = await req.json();
@@ -49,12 +42,18 @@ Deno.serve(async (req: Request) => {
         }
 
         // Get the session
-        const { data: session, error: sessError } = await supabase
+        let query = supabase
             .from('game_sessions')
             .select('*')
-            .eq('id', session_id)
-            .eq('user_id', user.id)
-            .single();
+            .eq('id', session_id);
+
+        if (user) {
+            query = query.eq('user_id', user.id);
+        } else {
+            query = query.is('user_id', null);
+        }
+
+        const { data: session, error: sessError } = await query.single();
 
         if (sessError || !session) {
             return new Response(JSON.stringify({ error: 'Session not found' }), {

@@ -1,0 +1,20 @@
+{
+  "name": "tesimok",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "crop": "node scripts/crop-images.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.0",
+    "supabase": "^2.76.16",
+    "vite": "^6.0.0"
+  }
+}

@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "check": "node scripts/check-setup.js",
+    "setup:sql": "node scripts/build-setup-sql.js",
+    "blank": "node scripts/make-blank-questions.js",
     "crop": "node scripts/crop-images.js"
   },
   "dependencies": {

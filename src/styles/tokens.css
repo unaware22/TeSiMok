@@ -37,29 +37,29 @@
   --violet-500: #A855F7;
   --violet-100: rgba(168, 85, 247, 0.18);
 
-  /* ---------- Semantic: Antigravity IDE Dark Theme ---------- */
-  --bg-app: #0B0F19;
-  --bg-surface: #131B2A;
-  --bg-elevated: #1A2436;
-  --bg-sunken: #070A10;
+  /* ---------- Semantic: Clean Modern Light Theme (UIUX.png) ---------- */
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-sunken: #F1F5F9;
 
-  --surface-card: #131B2A;
-  --surface-card-hover: #1A2436;
-  --surface-solid: #151E2E;
-  --surface-cream: #182030;
-  --surface-glass: rgba(19, 27, 42, 0.92);
-  --surface-tint: #1C2638;
+  --surface-card: #FFFFFF;
+  --surface-card-hover: #F8FAFC;
+  --surface-solid: #F8FAFC;
+  --surface-cream: #FFFDF9;
+  --surface-glass: rgba(255, 255, 255, 0.94);
+  --surface-tint: #F1F5F9;
 
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
   --text-muted: #64748B;
   --text-on-navy: #FFFFFF;
-  --text-on-gold: #0B0F19;
-  --text-on-cream: #F1F5F9;
+  --text-on-gold: #0F172A;
+  --text-on-cream: #0F172A;
 
-  --line-soft: rgba(255, 255, 255, 0.08);
-  --line-mid: rgba(255, 255, 255, 0.14);
-  --line-strong: rgba(255, 255, 255, 0.22);
+  --line-soft: rgba(0, 0, 0, 0.08);
+  --line-mid: rgba(0, 0, 0, 0.14);
+  --line-strong: rgba(0, 0, 0, 0.22);
   --line-gold: rgba(245, 158, 11, 0.45);
 
   /* ---------- Gradients ---------- */
@@ -70,18 +70,19 @@
   --grad-violet: linear-gradient(135deg, #C084FC 0%, #9333EA 100%);
   --grad-navy: linear-gradient(160deg, #1E293B 0%, #0F172A 100%);
   --grad-premium: linear-gradient(150deg, #1E293B 0%, #0B0F19 100%);
-  --grad-boss: linear-gradient(135deg, rgba(239, 68, 68, 0.32) 0%, rgba(20, 10, 15, 0.96) 100%);
+  --grad-boss: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(30, 20, 25, 0.92) 100%);
 
-  /* ---------- Elevation (Dark Mode Glow & Shadow) ---------- */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 3px 8px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
-  --shadow-gold: 0 6px 20px rgba(245, 158, 11, 0.3);
-  --shadow-coral: 0 6px 20px rgba(239, 68, 68, 0.3);
-  --shadow-boss: 0 0 24px rgba(239, 68, 68, 0.5);
-  --shadow-navy: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* ---------- Elevation ---------- */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --shadow-gold: 0 4px 14px rgba(245, 158, 11, 0.2);
+  --shadow-coral: 0 4px 14px rgba(239, 68, 68, 0.2);
+  --shadow-boss: 0 6px 20px rgba(239, 68, 68, 0.25);
+  --shadow-navy: 0 4px 14px rgba(15, 23, 42, 0.12);
+  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --nav-bg: rgba(255, 255, 255, 0.96);
 
   /* ---------- Radii ---------- */
   --r-xs: 8px;
@@ -135,48 +136,43 @@
   --bad: var(--coral-500);
 }
 
-/* ---------- Semantic: Clean Modern Light Theme ---------- */
-[data-theme="light"] {
-  --bg-app: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: #FFFFFF;
-  --bg-sunken: #F1F5F9;
+/* ---------- Semantic: Dark Theme Override ---------- */
+[data-theme="dark"] {
+  --bg-app: #0B0F19;
+  --bg-surface: #131B2A;
+  --bg-elevated: #1A2436;
+  --bg-sunken: #070A10;
 
-  --surface-card: #FFFFFF;
-  --surface-card-hover: #F1F5F9;
-  --surface-solid: #F8FAFC;
-  --surface-cream: #FFFDF9;
-  --surface-glass: rgba(255, 255, 255, 0.94);
-  --surface-tint: #F1F5F9;
+  --surface-card: #131B2A;
+  --surface-card-hover: #1A2436;
+  --surface-solid: #151E2E;
+  --surface-cream: #182030;
+  --surface-glass: rgba(19, 27, 42, 0.92);
+  --surface-tint: #1C2638;
 
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
   --text-muted: #64748B;
   --text-on-navy: #FFFFFF;
-  --text-on-gold: #0F172A;
-  --text-on-cream: #0F172A;
+  --text-on-gold: #0B0F19;
+  --text-on-cream: #F1F5F9;
 
-  --line-soft: rgba(0, 0, 0, 0.08);
-  --line-mid: rgba(0, 0, 0, 0.14);
-  --line-strong: rgba(0, 0, 0, 0.24);
+  --line-soft: rgba(255, 255, 255, 0.08);
+  --line-mid: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.22);
   --line-gold: rgba(245, 158, 11, 0.45);
 
-  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 3px 8px rgba(0, 0, 0, 0.07);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.09);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
-  --shadow-gold: 0 6px 20px rgba(245, 158, 11, 0.25);
-  --shadow-coral: 0 6px 20px rgba(239, 68, 68, 0.25);
-  --shadow-boss: 0 0 24px rgba(239, 68, 68, 0.4);
-  --shadow-navy: 0 6px 20px rgba(0, 0, 0, 0.1);
-  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 3px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+  --shadow-gold: 0 4px 14px rgba(245, 158, 11, 0.25);
+  --shadow-coral: 0 4px 14px rgba(239, 68, 68, 0.25);
+  --shadow-boss: 0 6px 20px rgba(239, 68, 68, 0.35);
+  --shadow-navy: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-  /* Nav */
-  --nav-bg: rgba(255, 255, 255, 0.92);
-
-  /* Gradients (lighter in light mode) */
-  --grad-navy: linear-gradient(160deg, #334155 0%, #1E293B 100%);
-  --grad-premium: linear-gradient(150deg, #E2E8F0 0%, #F8FAFC 100%);
+  --nav-bg: rgba(19, 27, 42, 0.95);
 }
 
 /* ============================================================

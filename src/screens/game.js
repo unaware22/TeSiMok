@@ -23,7 +23,7 @@
  */
 import { el, mount, flashClass } from '../lib/dom.js';
 import { initAudio, sfx } from '../lib/audio.js';
-import { triggerCorrectEffect } from '../lib/effects.js';
+import { triggerCorrectEffect, triggerConfetti } from '../lib/effects.js';
 import { Button, confirmDialog, openSheet, toast } from '../components/primitives.js';
 import { IconHeart, IconLightbulb, IconKey } from '../components/icons.js';
 import {
@@ -56,8 +56,8 @@ export function GameScreen({ id }) {
     keysUsed: 0,
     hintsUsed: 0,
     locked: false,
-    timeLimit: 6,
-    secondsLeft: 0,
+    timeLimit: 10,
+    secondsLeft: 10,
     startedAt: 0,
     timerId: null,
     runId: null,
@@ -87,7 +87,7 @@ export function GameScreen({ id }) {
       if (!stage) throw new Error('Stage tidak ditemukan.');
 
       run.stage = stage;
-      run.timeLimit = 6;
+      run.timeLimit = stage.time_per_question || 10;
 
       const { profile } = getState();
       if (!profile) {
@@ -172,11 +172,14 @@ export function GameScreen({ id }) {
           ),
         ),
 
-        // Progress bar (e.g. 1/5)
+        // Progress bar (e.g. 1/5) & Timer
         el('div', { style: { width: '100%', margin: '4px 0' } },
           el('div', { class: 'row-between', style: { marginBottom: '4px' } },
             el('span', { class: 't-label', id: 'q-step-indicator' }, `1/${run.questions.length}`),
-            el('span', { class: 'streak-chip', id: 'streak-chip' }, '🔥 0'),
+            el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+              el('span', { class: 'game__timer-val', id: 'timer-val', style: { fontSize: '0.85rem', fontWeight: '800' } }, `⏱️ ${run.timeLimit}s`),
+              el('span', { class: 'streak-chip', id: 'streak-chip' }, '🔥 0'),
+            ),
           ),
           el('div', { class: 'progress progress--thin' },
             el('div', { class: 'progress__fill', id: 'timer-fill', style: { width: '100%' } }),
@@ -558,14 +561,29 @@ export function GameScreen({ id }) {
     run.startedAt = Date.now();
 
     const bar = document.getElementById('timer-fill');
+    const timerVal = document.getElementById('timer-val');
     if (bar) {
       bar.style.width = '100%';
       bar.className = 'progress__fill';
+    }
+    if (timerVal) {
+      timerVal.textContent = `⏱️ ${Math.ceil(run.secondsLeft)}s`;
+      timerVal.className = 'game__timer-val';
     }
 
     run.timerId = setInterval(() => {
       run.secondsLeft -= 0.1;
       const pct = Math.max(0, (run.secondsLeft / run.timeLimit) * 100);
+      const secs = Math.max(0, Math.ceil(run.secondsLeft));
+
+      if (timerVal) {
+        timerVal.textContent = `⏱️ ${secs}s`;
+        if (secs <= 3) {
+          timerVal.className = 'game__timer-val game__timer-val--low';
+        } else {
+          timerVal.className = 'game__timer-val';
+        }
+      }
 
       if (bar) {
         bar.style.width = `${pct}%`;
@@ -602,100 +620,166 @@ export function GameScreen({ id }) {
   }
 
   // ============================================================
-  // Stage Completion
+  // Stage Completion (Immediate Rich Output Screen)
   // ============================================================
 
-  async function finishStage() {
+  function finishStage() {
+    if (run.finished) return;
     run.finished = true;
     stopTimer();
+    clearTimeout(run.advanceId);
 
     const total = run.questions.length;
     const accuracy = total > 0 ? (run.correct / total) * 100 : 0;
     const stars = computeStarRating(accuracy, run.stage);
 
     const isWin = stars > 0;
-    if (isWin) sfx.win();
-    else sfx.lose();
+    if (isWin) {
+      sfx.win();
+      triggerConfetti();
+    } else {
+      sfx.lose();
+    }
 
-    try {
-      const recordRes = await recordStageResult({
-        stageId: run.stage.id,
-        score: run.score,
-        correct: run.correct,
-        total,
-        maxStreak: run.maxStreak,
-        stars,
-      });
+    // Persist result asynchronously in background — never block UI output
+    recordStageResult({
+      stageId: run.stage.id,
+      score: run.score,
+      correct: run.correct,
+      total,
+      maxStreak: run.maxStreak,
+      stars,
+    }).then((recordRes) => {
       if (recordRes?.stageProgress) {
         setState({ stageProgress: recordRes.stageProgress });
       }
-      const updated = await fetchProfile();
-      if (updated) {
-        applyProfile(updated);
-      } else if (recordRes?.profile) {
-        applyProfile(recordRes.profile);
+      return fetchProfile();
+    }).then((updated) => {
+      if (updated) applyProfile(updated);
+    }).catch((e) => {
+      console.warn('[game] background recordStageResult failed:', e);
+    });
+
+    // Check interstitial ad if applicable
+    try {
+      const needAd = registerPlayAndCheckInterstitial(getState().profile);
+      if (needAd && ads.isReady()) {
+        ads.showInterstitial().catch(() => {});
       }
-    } catch (e) {
-      console.warn('[game] recordStageResult failed:', e);
-    }
+    } catch {}
 
-    openSheet({
-      position: 'center',
-      dismissible: false,
-      content: el('div', { class: 'stack stack-4', style: { textAlign: 'center', padding: '12px 6px' } },
-        el('div', { class: `result-badge result-badge--${isWin ? 'win' : 'lose'}` }, isWin ? '🏆' : '💔'),
-        el('h2', { class: 't-title' }, isWin ? 'Stage Berhasil!' : 'Belum Berhasil'),
-        el('p', { class: 't-subtitle' },
-          isWin ? 'Hebat! Kamu berhasil menebak stiker dengan baik.' : 'Jangan menyerah! Coba lagi untuk membuka stage berikutnya.'),
+    // Render Stage Result View immediately
+    renderStageResult(isWin, stars, total, accuracy);
+  }
 
-        // Star rating
-        el('div', { style: { fontSize: '2.2rem', letterSpacing: '4px', margin: '4px 0' } },
-          ...Array.from({ length: 3 }, (_, i) => (i < stars ? '⭐' : '🖤')),
-        ),
+  function renderStageResult(isWin, stars, total, accuracy) {
+    const stage = run.stage;
+    const nextStageId = stage.id + 1;
+    const hasNext = isWin && nextStageId <= 10;
+    const coinsEarned = isWin ? 150 : 30;
 
-        // Score summary
-        el('div', { class: 'card', style: { padding: '14px', background: '#F8FAFC' } },
-          el('div', { class: 'row-between', style: { marginBottom: '6px' } },
-            el('span', { class: 't-label' }, 'Benar'),
-            el('b', {}, `${run.correct}/${total}`),
-          ),
-          el('div', { class: 'row-between', style: { marginBottom: '6px' } },
-            el('span', { class: 't-label' }, 'Streak Tertinggi'),
-            el('b', {}, `🔥 ${run.maxStreak}`),
-          ),
-          el('div', { class: 'row-between' },
-            el('span', { class: 't-label' }, 'Total Skor'),
-            el('b', { style: { color: 'var(--navy-900)', fontSize: '1.1rem' } }, formatNumber(run.score)),
-          ),
-        ),
-
-        // Actions
-        el('div', { class: 'dialog__actions', style: { marginTop: '12px' } },
-          Button({
-            label: isWin ? 'Lanjut Stage Berikutnya' : 'Coba Lagi',
-            variant: 'dark',
-            block: true,
-            onClick: () => {
-              document.querySelector('.overlay')?.remove();
-              if (isWin && run.stage.id < 10) {
-                router.navigate('game', { id: run.stage.id + 1 });
-              } else {
-                router.navigate('stages');
-              }
+    mount(
+      el('div', { class: 'shell stage-result-screen' },
+        el('div', { class: 'stack stack-4', style: { width: '100%', alignItems: 'center' } },
+          // Badge Trophy/Heart
+          el('div', {
+            class: `result-badge result-badge--${isWin ? 'win' : 'lose'}`,
+            style: {
+              width: '84px',
+              height: '84px',
+              borderRadius: '24px',
+              display: 'grid',
+              placeItems: 'center',
+              fontSize: '2.5rem',
+              margin: '12px auto 0',
+              background: isWin ? 'rgba(245, 158, 11, 0.14)' : 'rgba(239, 68, 68, 0.12)',
+              border: `2px solid ${isWin ? 'var(--gold-400)' : 'var(--coral-400)'}`,
             },
-          }),
-          Button({
-            label: 'Kembali ke Beranda',
-            variant: 'ghost',
-            block: true,
-            onClick: () => {
-              document.querySelector('.overlay')?.remove();
-              router.navigate('home');
+          }, isWin ? '🏆' : '💔'),
+
+          // Title & Subtitle
+          el('div', { style: { textAlign: 'center' } },
+            el('h1', { class: 't-display', style: { fontSize: '1.8rem', marginBottom: '6px' } },
+              isWin ? `Stage ${stage.id} Berhasil!` : `Stage ${stage.id} Belum Berhasil`),
+            el('p', { class: 't-subtitle', style: { maxWidth: '340px', margin: '0 auto' } },
+              isWin
+                ? 'Luar biasa! Kamu berhasil menebak stiker dan menyelesaikan stage ini.'
+                : 'Target bintang belum tercapai. Jangan menyerah, coba lagi yuk!'),
+          ),
+
+          // Star Rating with Pop-in Animation
+          el('div', {
+            style: {
+              fontSize: '2.4rem',
+              letterSpacing: '8px',
+              margin: '4px 0',
+              filter: isWin ? 'drop-shadow(0 2px 8px rgba(245,158,11,0.35))' : 'none',
             },
-          }),
+          },
+            ...Array.from({ length: 3 }, (_, i) => (i < stars ? '⭐' : '🖤')),
+          ),
+
+          // Summary Card
+          el('div', { class: 'card stage-result-card', style: { width: '100%', maxWidth: '380px' } },
+            el('div', { class: 'row-between' },
+              el('span', { class: 't-label' }, 'Jawaban Benar'),
+              el('b', { style: { fontSize: '1.05rem' } }, `${run.correct} / ${total}`),
+            ),
+            el('div', { class: 'row-between' },
+              el('span', { class: 't-label' }, 'Akurasi'),
+              el('b', { style: { color: isWin ? 'var(--mint-600)' : 'var(--coral-600)', fontSize: '1.05rem' } }, `${Math.round(accuracy)}%`),
+            ),
+            el('div', { class: 'row-between' },
+              el('span', { class: 't-label' }, 'Streak Tertinggi'),
+              el('b', {}, `🔥 ${run.maxStreak}`),
+            ),
+            el('div', { class: 'row-between' },
+              el('span', { class: 't-label' }, 'Skor Stage'),
+              el('b', { style: { color: 'var(--navy-900)', fontSize: '1.1rem' } }, `+${formatNumber(run.score)}`),
+            ),
+            el('div', { class: 'row-between' },
+              el('span', { class: 't-label' }, 'Koin Diperoleh'),
+              el('b', { style: { color: 'var(--gold-600)', fontSize: '1.05rem' } }, `+${coinsEarned} 🪙`),
+            ),
+          ),
+
+          // Action Buttons matching UIUX.png
+          el('div', { class: 'stack stack-2', style: { width: '100%', maxWidth: '380px', marginTop: '4px' } },
+            hasNext
+              ? Button({
+                  label: `Lanjut Stage ${nextStageId} →`,
+                  variant: 'dark',
+                  size: 'lg',
+                  block: true,
+                  onClick: () => router.navigate('game', { id: nextStageId }),
+                })
+              : null,
+
+            Button({
+              label: isWin && !hasNext ? 'Daftar Semua Stage' : (isWin ? 'Pilih Stage Lain' : 'Coba Lagi 🔄'),
+              variant: isWin && hasNext ? 'soft' : 'dark',
+              size: isWin && hasNext ? 'md' : 'lg',
+              block: true,
+              onClick: () => {
+                if (!isWin) {
+                  router.navigate('game', { id: stage.id });
+                } else {
+                  router.navigate('stages');
+                }
+              },
+            }),
+
+            Button({
+              label: 'Kembali ke Beranda',
+              variant: 'ghost',
+              size: 'md',
+              block: true,
+              onClick: () => router.navigate('home'),
+            }),
+          ),
         ),
       ),
-    });
+    );
   }
 
   async function confirmQuit() {

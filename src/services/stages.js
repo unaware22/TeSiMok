@@ -7,6 +7,7 @@ import { QUESTIONS_PER_STAGE, BASE_POINTS, STREAK_BONUS, MAX_STREAK_BONUS, SPEED
 import {
   DEFAULT_STAGES,
   DEFAULT_QUESTIONS,
+  STAGE_FIXED_QUESTIONS,
   getLocalStore,
   recordLocalStageResult,
 } from './fallback-data.js';
@@ -124,6 +125,17 @@ export async function pickStageQuestions(stage) {
         }
       })
       .catch(() => {});
+  }
+
+  // Pre-determined fixed questions per stage (no random shuffling)
+  const fixedIds = stage?.question_ids || STAGE_FIXED_QUESTIONS[stageId];
+  if (fixedIds && Array.isArray(fixedIds) && fixedIds.length > 0) {
+    const fixedList = [];
+    for (const qId of fixedIds) {
+      const found = questionsCache.find((q) => Number(q.id) === Number(qId));
+      if (found) fixedList.push(found);
+    }
+    if (fixedList.length > 0) return fixedList;
   }
 
   return sampleQuestions(questionsCache, stage, count, stageId);
@@ -385,16 +397,19 @@ export async function recordStageResult(arg1, arg2, arg3, arg4, arg5) {
   const localRes = recordLocalStageResult(stageId, score, finalStars);
 
   try {
-    const res = await rpc('record_stage_result', {
-      p_stage_id: stageId,
-      p_score: score,
-      p_correct: stageCorrect,
-      p_total: stageTotal,
-      p_max_streak: maxStreak || 0,
-    });
+    const res = await Promise.race([
+      rpc('record_stage_result', {
+        p_stage_id: stageId,
+        p_score: score,
+        p_correct: stageCorrect,
+        p_total: stageTotal,
+        p_max_streak: maxStreak || 0,
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('rpc timeout')), 1500)),
+    ]);
     if (res) return { ...localRes, ...res };
   } catch (err) {
-    console.warn('[stages] record_stage_result RPC failed, relying on local:', err.message);
+    console.warn('[stages] record_stage_result RPC failed/timed out, relying on local:', err.message);
   }
 
   return localRes;

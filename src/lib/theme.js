@@ -13,7 +13,7 @@ export function getTheme() {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {}
-  return 'dark'; // Default to Antigravity Dark Mode
+  return 'light'; // Default to Clean Modern Light Theme matching UIUX.png
 }
 
 export function setTheme(theme) {

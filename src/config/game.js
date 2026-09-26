@@ -16,8 +16,8 @@ export const KEY_PACK_PRICE_IDR = 20000;
 
 // ---------- Stage mode ----------
 export const STAGE_COUNT = 10;
-export const QUESTIONS_PER_STAGE = 10;
-export const STAGE_TIME_PER_QUESTION = 6;
+export const QUESTIONS_PER_STAGE = 5;
+export const STAGE_TIME_PER_QUESTION = 10;
 
 /**
  * Mekanik permainan.

@@ -35,17 +35,30 @@ export const DEFAULT_PROFILE = {
   haptics_enabled: true,
 };
 
+export const STAGE_FIXED_QUESTIONS = {
+  1: [1, 2, 4, 6, 7],     // jomok1, jomok2, jomok4, jomok6, jomok7
+  2: [8, 9, 10, 11, 12],  // jomok8, jomok9, jomok10, jomok11, jomok12
+  3: [13, 15, 16, 18, 23], // jomok13, jomok15, jomok16, jomok18, jomok24
+  4: [5, 17, 20, 21, 24], // jomok5, jomok17, jomok21, jomok22, jomok25
+  5: [14, 22, 25, 31, 32], // jomok14, jomok23, jomok26, jomok33, jomok34
+  6: [3, 29, 27, 28, 30], // jomok3, jomok30, jomok28, jomok29, jomok32
+  7: [19, 26, 1, 16, 20], // jomok19, jomok27, jomok1, jomok16, jomok21
+  8: [9, 15, 23, 27, 32], // jomok9, jomok15, jomok24, jomok28, jomok34
+  9: [4, 12, 18, 24, 31], // jomok4, jomok12, jomok18, jomok25, jomok33
+  10: [2, 5, 17, 26, 32], // jomok2, jomok5, jomok17, jomok27, jomok34
+};
+
 export const DEFAULT_STAGES = [
-  { id: 1, slug: 'pemanasan', title: 'Pemanasan', subtitle: 'Tebak stiker jomok dasar', emoji: '🎯', question_count: 5, time_per_question: 25, pass_percent: 60, star2_percent: 80, star3_percent: 100 },
-  { id: 2, slug: 'meme-klasik', title: 'Meme Klasik', subtitle: 'Stiker yang sering lewat di grup', emoji: '😂', question_count: 5, time_per_question: 22, pass_percent: 60, star2_percent: 80, star3_percent: 100 },
-  { id: 3, slug: 'jomok-santai', title: 'Jomok Santai', subtitle: 'Tingkat kesulitan menengah', emoji: '☕', question_count: 5, time_per_question: 20, pass_percent: 60, star2_percent: 80, star3_percent: 100 },
-  { id: 4, slug: 'sigma-mode', title: 'Sigma Mode', subtitle: 'Jangan sampai salah tebak', emoji: '🗿', question_count: 5, time_per_question: 20, pass_percent: 70, star2_percent: 85, star3_percent: 100 },
-  { id: 5, slug: 'amba-universe', title: 'Amba Universe', subtitle: 'Kumpulan stiker Mas Amba', emoji: '👑', question_count: 5, time_per_question: 18, pass_percent: 70, star2_percent: 85, star3_percent: 100 },
-  { id: 6, slug: 'rusdi-club', title: 'Rusdi Barber', subtitle: 'Koleksi pangkas rambut legendaris', emoji: '✂️', question_count: 5, time_per_question: 18, pass_percent: 70, star2_percent: 85, star3_percent: 100 },
-  { id: 7, slug: 'suki-expert', title: 'Suki Expert', subtitle: 'Hanya sepuh yang bisa jawab', emoji: '🔥', question_count: 5, time_per_question: 16, pass_percent: 80, star2_percent: 90, star3_percent: 100 },
-  { id: 8, slug: 'master-stiker', title: 'Master Stiker', subtitle: 'Waktu makin sempit', emoji: '⚡', question_count: 5, time_per_question: 15, pass_percent: 80, star2_percent: 90, star3_percent: 100 },
-  { id: 9, slug: 'grandmaster', title: 'Grandmaster Jomok', subtitle: 'Hampir mendekati puncak', emoji: '🌟', question_count: 5, time_per_question: 12, pass_percent: 80, star2_percent: 90, star3_percent: 100 },
-  { id: 10, slug: 'raja-jomok', title: 'Raja Jomok', subtitle: 'Final Boss — Taklukkan Sang Raja!', emoji: '👹', question_count: 5, time_per_question: 10, pass_percent: 80, star2_percent: 90, star3_percent: 100, is_boss: true },
+  { id: 1, slug: 'pemanasan', title: 'Pemanasan', subtitle: 'Tebak stiker jomok dasar', emoji: '🎯', question_count: 5, time_per_question: 10, pass_percent: 60, star2_percent: 80, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[1] },
+  { id: 2, slug: 'meme-klasik', title: 'Meme Klasik', subtitle: 'Stiker yang sering lewat di grup', emoji: '😂', question_count: 5, time_per_question: 10, pass_percent: 60, star2_percent: 80, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[2] },
+  { id: 3, slug: 'jomok-santai', title: 'Jomok Santai', subtitle: 'Tingkat kesulitan menengah', emoji: '☕', question_count: 5, time_per_question: 10, pass_percent: 60, star2_percent: 80, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[3] },
+  { id: 4, slug: 'sigma-mode', title: 'Sigma Mode', subtitle: 'Jangan sampai salah tebak', emoji: '🗿', question_count: 5, time_per_question: 10, pass_percent: 70, star2_percent: 85, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[4] },
+  { id: 5, slug: 'amba-universe', title: 'Amba Universe', subtitle: 'Kumpulan stiker Mas Amba', emoji: '👑', question_count: 5, time_per_question: 10, pass_percent: 70, star2_percent: 85, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[5] },
+  { id: 6, slug: 'rusdi-club', title: 'Rusdi Barber', subtitle: 'Koleksi pangkas rambut legendaris', emoji: '✂️', question_count: 5, time_per_question: 10, pass_percent: 70, star2_percent: 85, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[6] },
+  { id: 7, slug: 'suki-expert', title: 'Suki Expert', subtitle: 'Hanya sepuh yang bisa jawab', emoji: '🔥', question_count: 5, time_per_question: 10, pass_percent: 80, star2_percent: 90, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[7] },
+  { id: 8, slug: 'master-stiker', title: 'Master Stiker', subtitle: 'Waktu makin sempit', emoji: '⚡', question_count: 5, time_per_question: 10, pass_percent: 80, star2_percent: 90, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[8] },
+  { id: 9, slug: 'grandmaster', title: 'Grandmaster Jomok', subtitle: 'Hampir mendekati puncak', emoji: '🌟', question_count: 5, time_per_question: 10, pass_percent: 80, star2_percent: 90, star3_percent: 100, question_ids: STAGE_FIXED_QUESTIONS[9] },
+  { id: 10, slug: 'raja-jomok', title: 'Raja Jomok', subtitle: 'Final Boss — Taklukkan Sang Raja!', emoji: '👹', question_count: 5, time_per_question: 10, pass_percent: 80, star2_percent: 90, star3_percent: 100, is_boss: true, question_ids: STAGE_FIXED_QUESTIONS[10] },
 ];
 
 export const RAW_QUESTION_BANK = [

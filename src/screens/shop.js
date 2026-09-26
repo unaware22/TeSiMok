@@ -22,6 +22,7 @@ import { AD_CONFIG, MAX_LIVES } from '../config/game.js';
 import { handleNav } from './home.js';
 
 export function ShopScreen({ tab = 'toko' }) {
+  let isMounted = true;
   // Normalize incoming tab ('lives' -> 'nyawa', 'items' -> 'toko')
   let activeTab = tab === 'lives' || tab === 'nyawa' ? 'nyawa' : 'toko';
   let items = null;
@@ -41,11 +42,13 @@ export function ShopScreen({ tab = 'toko' }) {
         fetchOwnedStickers().catch(() => []),
       ]);
 
+      if (!isMounted) return;
       items = shopItems;
       stickers = stickerList;
       owned = ownedIds;
       render();
     } catch (err) {
+      if (!isMounted) return;
       console.error('[shop] load failed:', err);
       render({ error: err.message });
     }
@@ -56,6 +59,7 @@ export function ShopScreen({ tab = 'toko' }) {
   // ============================================================
 
   function render({ loading = false, error = null } = {}) {
+    if (!isMounted) return;
     const { profile, lifeState } = getState();
 
     mount(
@@ -532,7 +536,10 @@ export function ShopScreen({ tab = 'toko' }) {
     }
   }, 1000);
 
-  return () => clearInterval(countdownId);
+  return () => {
+    isMounted = false;
+    clearInterval(countdownId);
+  };
 }
 
 function sleep(ms) {

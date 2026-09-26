@@ -38,16 +38,16 @@ function createSvg(width, height, viewBox, children, extraAttrs = {}) {
 // -------------------------------------------------------------
 
 export function IconHome({ size = 22, active = false, color = 'currentColor' } = {}) {
-  const fill = active ? 'var(--navy-900)' : 'none';
-  const stroke = active ? 'var(--navy-900)' : color;
+  const stroke = active ? '#38BDF8' : color;
+  const fill = active ? 'rgba(56, 189, 248, 0.2)' : 'none';
   return createSvg(size, size, '0 0 24 24', [
     { tag: 'path', attrs: { d: 'M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5H15a1 1 0 01-1-1v-4.5h-4V20a1 1 0 01-1 1H4.5A1.5 1.5 0 013 20v-9.5z', fill: fill, stroke: stroke, 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' } },
   ]);
 }
 
 export function IconBattle({ size = 22, active = false, color = 'currentColor' } = {}) {
-  const stroke = active ? 'var(--navy-900)' : color;
-  const fill = active ? 'rgba(28, 36, 49, 0.15)' : 'none';
+  const stroke = active ? '#38BDF8' : color;
+  const fill = active ? 'rgba(56, 189, 248, 0.2)' : 'none';
   return createSvg(size, size, '0 0 24 24', [
     // Left blade
     { tag: 'path', attrs: { d: 'M14.5 4l5.5 5.5-9 9L6.5 14l8-10z', fill: fill, stroke: stroke, 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' } },
@@ -61,8 +61,8 @@ export function IconBattle({ size = 22, active = false, color = 'currentColor' }
 }
 
 export function IconTrophy({ size = 22, active = false, color = 'currentColor' } = {}) {
-  const fill = active ? 'var(--gold-400)' : 'none';
-  const stroke = active ? 'var(--gold-600)' : color;
+  const stroke = active ? '#38BDF8' : color;
+  const fill = active ? 'rgba(56, 189, 248, 0.2)' : 'none';
   return createSvg(size, size, '0 0 24 24', [
     // Cup bowl
     { tag: 'path', attrs: { d: 'M6 4h12v6a6 6 0 01-12 0V4z', fill: fill, stroke: stroke, 'stroke-width': '2', 'stroke-linejoin': 'round' } },
@@ -78,8 +78,8 @@ export function IconTrophy({ size = 22, active = false, color = 'currentColor' }
 }
 
 export function IconProfile({ size = 22, active = false, color = 'currentColor' } = {}) {
-  const fill = active ? 'var(--navy-900)' : 'none';
-  const stroke = active ? 'var(--navy-900)' : color;
+  const stroke = active ? '#38BDF8' : color;
+  const fill = active ? 'rgba(56, 189, 248, 0.2)' : 'none';
   return createSvg(size, size, '0 0 24 24', [
     { tag: 'circle', attrs: { cx: '12', cy: '8', r: '4.5', fill: fill, stroke: stroke, 'stroke-width': '2' } },
     { tag: 'path', attrs: { d: 'M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5', fill: fill, stroke: stroke, 'stroke-width': '2', 'stroke-linecap': 'round' } },

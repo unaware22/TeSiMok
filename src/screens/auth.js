@@ -11,8 +11,8 @@ import { Button } from '../components/primitives.js';
 import { TeSiMokBrandBadge, IconGoogle } from '../components/icons.js';
 import { signIn, signUp, signInWithGoogle, humanizeError } from '../services/supabase.js';
 import * as router from '../state/router.js';
-import { loadProfile, startLifeTicker } from '../state/store.js';
-import { updateLocalProfile } from '../services/fallback-data.js';
+import { loadProfile, startLifeTicker, setState } from '../state/store.js';
+import { updateLocalProfile, getLocalStore } from '../services/fallback-data.js';
 
 const AVATAR_CHOICES = ['😎', '🤣', '🔥', '👑', '🐉', '💀', '🦁', '👽', '🤖', '🐸', '🎭', '🐼'];
 
@@ -98,7 +98,7 @@ export function AuthScreen() {
           el('p', {
             class: 't-subtitle t-center',
             style: { fontSize: '11px', opacity: '0.65', marginTop: '6px' },
-          }, 'Wajib masuk untuk bermain & menyimpan rating leaderboard.'),
+          }, 'Wajib masuk dengan akun untuk bermain & menyimpan rating leaderboard.'),
         ),
       ),
     );

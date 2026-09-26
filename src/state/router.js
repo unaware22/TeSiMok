@@ -7,9 +7,11 @@
 import { getState } from './store.js';
 
 const routes = new Map();
+const moduleCache = new Map();
 
 let currentCleanup = null;
 let currentRoute = null;
+let navigationToken = 0;
 const history = [];
 
 /**
@@ -25,7 +27,7 @@ export function register(name, loader) {
  * Navigate to a screen.
  * @param {string} name
  * @param {object} [params]
- * @param {{replace?: boolean}} [opts]
+ * @param {{replace?: boolean, force?: boolean}} [opts]
  */
 export async function navigate(name, params = {}, opts = {}) {
   // Authentication Guard: all routes except 'auth' require a logged-in user
@@ -42,6 +44,43 @@ export async function navigate(name, params = {}, opts = {}) {
     console.error(`[router] Unknown route: ${name}`);
     return;
   }
+
+  // If already on the exact same screen and params, ignore rapid re-click unless forced
+  const isSameRoute = currentRoute
+    && currentRoute.name === name
+    && JSON.stringify(currentRoute.params) === JSON.stringify(params);
+  if (isSameRoute && !opts.replace && !opts.force) {
+    return;
+  }
+
+  // Monotonically increasing token to cancel older in-flight navigations
+  const token = ++navigationToken;
+
+  // Retrieve cached factory or dynamically load screen chunk
+  let factory = moduleCache.get(name);
+  if (!factory) {
+    let module;
+    try {
+      module = await routes.get(name)();
+    } catch (err) {
+      if (token !== navigationToken) return;
+      console.error(`[router] Failed to load screen "${name}":`, err);
+      return;
+    }
+
+    // A newer navigation began while loading chunk — discard this one!
+    if (token !== navigationToken) return;
+
+    factory = typeof module === 'function' ? module : module?.default;
+    if (typeof factory !== 'function') {
+      console.error(`[router] Screen "${name}" did not export a function.`);
+      return;
+    }
+    moduleCache.set(name, factory);
+  }
+
+  // Double check token after module retrieval
+  if (token !== navigationToken) return;
 
   // Tear down the previous screen
   if (typeof currentCleanup === 'function') {
@@ -67,28 +106,22 @@ export async function navigate(name, params = {}, opts = {}) {
     window.history.pushState(null, '', hash);
   }
 
-  let module;
-  try {
-    module = await routes.get(name)();
-  } catch (err) {
-    console.error(`[router] Failed to load screen "${name}":`, err);
-    return;
-  }
-
-  const factory = typeof module === 'function' ? module : module.default;
-  if (typeof factory !== 'function') {
-    console.error(`[router] Screen "${name}" did not export a function.`);
-    return;
-  }
-
   const result = factory(params);
 
   // A screen may return a cleanup function (used to stop timers/subscriptions)
   if (typeof result === 'function') {
-    currentCleanup = result;
+    if (token === navigationToken) {
+      currentCleanup = result;
+    } else {
+      try { result(); } catch {}
+    }
   } else if (result && typeof result.then === 'function') {
     const resolved = await result;
-    if (typeof resolved === 'function') currentCleanup = resolved;
+    if (token === navigationToken && typeof resolved === 'function') {
+      currentCleanup = resolved;
+    } else if (token !== navigationToken && typeof resolved === 'function') {
+      try { resolved(); } catch {}
+    }
   }
 }
 
@@ -128,7 +161,7 @@ export function start(defaultRoute = 'home') {
     const params = parsed ? parsed.params : {};
 
     // Already showing this exact screen (normal navigate() flow) → nothing to do.
-    if (currentRoute && currentRoute.name === next) return;
+    if (currentRoute && currentRoute.name === next && JSON.stringify(currentRoute.params) === JSON.stringify(params)) return;
     // Unknown route → fall back to the default rather than rendering nothing.
     if (!routes.has(next)) {
       navigate(defaultRoute, {}, { replace: true });
@@ -150,4 +183,12 @@ export function start(defaultRoute = 'home') {
 export function resetHistory() {
   history.length = 0;
   currentRoute = null;
+  if (typeof currentCleanup === 'function') {
+    try {
+      currentCleanup();
+    } catch (err) {
+      console.error('[router] cleanup failed:', err);
+    }
+    currentCleanup = null;
+  }
 }

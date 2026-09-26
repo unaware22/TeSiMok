@@ -23,6 +23,7 @@
  */
 import { el, mount, flashClass } from '../lib/dom.js';
 import { initAudio, sfx } from '../lib/audio.js';
+import { triggerCorrectEffect } from '../lib/effects.js';
 import { Button, confirmDialog, openSheet, toast } from '../components/primitives.js';
 import { IconHeart, IconLightbulb, IconKey } from '../components/icons.js';
 import {
@@ -32,7 +33,7 @@ import {
 } from '../services/stages.js';
 import { spendLife, fetchProfile } from '../services/profile.js';
 import { registerPlayAndCheckInterstitial, ads, shouldShowAds } from '../services/shop.js';
-import { getState, applyProfile } from '../state/store.js';
+import { getState, setState, applyProfile } from '../state/store.js';
 import * as router from '../state/router.js';
 import { formatNumber } from '../lib/format.js';
 import { QUESTIONS_PER_STAGE, REVEAL_HOLD_MS, MAX_LIVES } from '../config/game.js';
@@ -55,7 +56,7 @@ export function GameScreen({ id }) {
     keysUsed: 0,
     hintsUsed: 0,
     locked: false,
-    timeLimit: 20,
+    timeLimit: 6,
     secondsLeft: 0,
     startedAt: 0,
     timerId: null,
@@ -86,7 +87,7 @@ export function GameScreen({ id }) {
       if (!stage) throw new Error('Stage tidak ditemukan.');
 
       run.stage = stage;
-      run.timeLimit = stage.time_per_question || 20;
+      run.timeLimit = 6;
 
       const { profile } = getState();
       if (!profile) {
@@ -182,34 +183,17 @@ export function GameScreen({ id }) {
           ),
         ),
 
-        // Sticker carousel container with < and > arrows
-        el('div', { class: 'stiker-carousel-wrap' },
-          el('button', {
-            class: 'carousel-btn',
-            type: 'button',
-            'aria-label': 'Sebelumnya',
-            onClick: prevQuestion,
-          }, '‹'),
-
-          // Sticker container
-          el('div', { class: 'stiker', id: 'stiker' },
-            el('img', {
-              id: 'stiker-img',
-              alt: 'Tebak teks pada stiker ini',
-              draggable: 'false',
-            }),
-            // Caption reveal area (appears when answered correctly)
-            el('div', { class: 'stiker__caption', id: 'stiker-caption' },
-              el('span', { class: 'stiker__caption-text', id: 'caption-text' }, ''),
-            ),
+        // Sticker container
+        el('div', { class: 'stiker', id: 'stiker' },
+          el('img', {
+            id: 'stiker-img',
+            alt: 'Tebak teks pada stiker ini',
+            draggable: 'false',
+          }),
+          // Caption reveal area (appears when answered correctly)
+          el('div', { class: 'stiker__caption', id: 'stiker-caption' },
+            el('span', { class: 'stiker__caption-text', id: 'caption-text' }, ''),
           ),
-
-          el('button', {
-            class: 'carousel-btn',
-            type: 'button',
-            'aria-label': 'Selanjutnya',
-            onClick: () => handleTimeout(),
-          }, '›'),
         ),
 
         // Multiple choice options grid A, B, C, D
@@ -291,13 +275,6 @@ export function GameScreen({ id }) {
     startTimer();
   }
 
-  function prevQuestion() {
-    if (run.index > 0) {
-      run.index -= 1;
-      nextQuestion();
-    }
-  }
-
   function setupOptions(question) {
     const host = document.getElementById('mc-options');
     if (!host) return;
@@ -369,7 +346,7 @@ export function GameScreen({ id }) {
       });
       run.score += points;
 
-      showPointsPopup(points);
+      triggerCorrectEffect(chosenBtn, points, run.streak);
       updateHeaderIndicators();
 
       recordAttempt(question.id, true, 'stage');
@@ -641,7 +618,7 @@ export function GameScreen({ id }) {
     else sfx.lose();
 
     try {
-      await recordStageResult({
+      const recordRes = await recordStageResult({
         stageId: run.stage.id,
         score: run.score,
         correct: run.correct,
@@ -649,8 +626,15 @@ export function GameScreen({ id }) {
         maxStreak: run.maxStreak,
         stars,
       });
+      if (recordRes?.stageProgress) {
+        setState({ stageProgress: recordRes.stageProgress });
+      }
       const updated = await fetchProfile();
-      applyProfile(updated);
+      if (updated) {
+        applyProfile(updated);
+      } else if (recordRes?.profile) {
+        applyProfile(recordRes.profile);
+      }
     } catch (e) {
       console.warn('[game] recordStageResult failed:', e);
     }

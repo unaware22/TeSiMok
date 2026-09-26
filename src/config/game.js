@@ -17,6 +17,7 @@ export const KEY_PACK_PRICE_IDR = 20000;
 // ---------- Stage mode ----------
 export const STAGE_COUNT = 10;
 export const QUESTIONS_PER_STAGE = 10;
+export const STAGE_TIME_PER_QUESTION = 6;
 
 /**
  * Mekanik permainan.
@@ -38,12 +39,12 @@ export const REVEAL_HOLD_MS = { correct: 1400, wrong: 1900 };
 export const STAR_THRESHOLDS = { one: 60, two: 80, three: 100 };
 
 /** Points awarded per correct answer, scaled by the current streak. */
-export const BASE_POINTS = 100;
-export const STREAK_BONUS = 25;
-export const MAX_STREAK_BONUS = 150;
+export const BASE_POINTS = 10;
+export const STREAK_BONUS = 2;
+export const MAX_STREAK_BONUS = 10;
 
 /** Bonus points for answering fast (proportional to time remaining). */
-export const SPEED_BONUS_MAX = 50;
+export const SPEED_BONUS_MAX = 5;
 
 // ---------- Battle / ranked ----------
 export const BATTLE_DURATION_SECONDS = 60;

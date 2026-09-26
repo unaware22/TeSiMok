@@ -16,6 +16,7 @@ import * as router from '../state/router.js';
 import { handleNav } from './home.js';
 
 export function StageSelectScreen() {
+  let isMounted = true;
   let selectedLevel = 1;
   const LEVELS = [
     { id: 1, name: 'Level 1', title: 'Pemula Jomok', unlocked: true },
@@ -31,15 +32,18 @@ export function StageSelectScreen() {
   async function load() {
     try {
       const progress = await fetchStageProgress();
+      if (!isMounted) return;
       setState({ stageProgress: progress });
       render({ progress });
     } catch (err) {
+      if (!isMounted) return;
       console.error('[stages] load failed:', err);
       render({ error: err.message });
     }
   }
 
   function render({ progress = null, loading = false, error = null } = {}) {
+    if (!isMounted) return;
     const rawStages = progress?.stages || getState().stageProgress?.stages || [];
     const stages = rawStages.slice(0, 10);
     const totalStars = stages.reduce((acc, s) => acc + (s.stars || 0), 0);
@@ -259,4 +263,8 @@ export function StageSelectScreen() {
 
     router.navigate('game', { id: stageId });
   }
+
+  return () => {
+    isMounted = false;
+  };
 }

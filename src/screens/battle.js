@@ -9,6 +9,7 @@
  */
 import { el, mount, flashClass } from '../lib/dom.js';
 import { sfx } from '../lib/audio.js';
+import { triggerCorrectEffect } from '../lib/effects.js';
 import {
   Button, Badge, Avatar, openSheet, toast, confirmDialog, EmptyState,
 } from '../components/primitives.js';
@@ -16,7 +17,7 @@ import { BottomNav, TopBar } from '../components/shell.js';
 import {
   joinQueue, cancelQueue, getBattleState, fetchBattleQuestions,
   submitBattleAnswer, settleBattle, watchBattle, watchMatchmaking,
-  fetchOpponent, sendTaunt,
+  fetchOpponent, sendTaunt, recordBattleResult,
 } from '../services/battle.js';
 import { supabase } from '../services/supabase.js';
 import { fetchProfile } from '../services/profile.js';
@@ -61,8 +62,8 @@ export function BattleScreen() {
   // ---------- Lifecycle ----------
   start();
 
-  async function start() {
-    const { profile } = getState();
+  function start() {
+    const { user, profile } = getState();
 
     if (!profile) {
       mount(
@@ -73,25 +74,21 @@ export function BattleScreen() {
             title: 'Masuk untuk bertanding',
             text: 'Battle mode memerlukan akun agar rating dan peringkatmu tersimpan.',
           }),
-          Button({
-            label: 'Masuk Sekarang',
-            variant: 'gold',
-            block: true,
-            onClick: () => router.navigate('auth'),
-          }),
+          el('div', { class: 'stack stack-2', style: { width: '100%', marginTop: '14px' } },
+            Button({
+              label: 'Masuk Sekarang',
+              variant: 'gold',
+              block: true,
+              onClick: () => router.navigate('auth'),
+            }),
+          ),
         ),
         BottomNav('battle', handleNav),
       );
       return;
     }
 
-    let user = null;
-    try {
-      const res = await supabase.auth.getUser();
-      user = res?.data?.user;
-    } catch {}
-    state.myId = user?.id || profile?.id || 'player-guest-1';
-
+    state.myId = user?.id || profile?.id || 'player-local-123';
     renderLobby();
   }
 
@@ -150,11 +147,16 @@ export function BattleScreen() {
     state.pollId = null;
     state.matchTimeout = null;
 
+    if (state.finished) return;
+
     try {
       const snapshot = await getBattleState(state.battleId);
+      if (state.finished) return;
       state.endsAt = snapshot.ends_at;
       state.opponent = await fetchOpponent(state.battleId, state.myId);
+      if (state.finished) return;
       state.questions = await fetchBattleQuestions(state.battleId);
+      if (state.finished) return;
 
       if (state.questions.length === 0) {
         throw new Error('Bank soal kosong. Hubungi admin.');
@@ -168,6 +170,7 @@ export function BattleScreen() {
       startClock();
       nextQuestion();
     } catch (err) {
+      if (state.finished) return;
       console.error('[battle] failed to start match:', err);
       toast(err.message || 'Gagal memulai pertandingan.', 'bad');
       router.navigate('home');
@@ -181,6 +184,8 @@ export function BattleScreen() {
     state.pollId = null;
     state.matchTimeout = null;
 
+    if (state.finished) return;
+
     try {
       state.endsAt = new Date(Date.now() + BATTLE_DURATION_SECONDS * 1000).toISOString();
       const botObj = customBot || { id: 'bot', display_name: 'Bot Jomok', avatar_emoji: '🤖', rating: 1050 };
@@ -193,10 +198,14 @@ export function BattleScreen() {
         } catch {}
       }
 
+      if (state.finished) return;
+
       if (!questions || questions.length === 0) {
         const { pickStageQuestions } = await import('../services/stages.js');
         questions = await pickStageQuestions({ question_count: 15, id: 1 });
       }
+
+      if (state.finished) return;
 
       state.questions = questions;
       if (state.questions.length === 0) throw new Error('Bank soal kosong.');
@@ -209,6 +218,7 @@ export function BattleScreen() {
       nextQuestion();
       runBot();
     } catch (err) {
+      if (state.finished) return;
       console.error('[battle] bot match failed:', err);
       toast('Gagal memulai latihan bot.', 'bad');
       router.navigate('home');
@@ -396,14 +406,14 @@ export function BattleScreen() {
         // Action Buttons
         el('div', { class: 'stack stack-2', style: { marginTop: '4px' } },
           Button({
-            label: '⚔️ Mulai Cari Lawan',
+            label: '⚔️ Cari Lawan Online (Ranked 1v1)',
             variant: 'primary',
             size: 'lg',
             block: true,
             onClick: () => startSearching(),
           }),
           Button({
-            label: '🤖 Latihan Lawan Bot (Bebas Risiko)',
+            label: '🤖 Tanding Cepat Lawan Bot (Langsung Main)',
             variant: 'soft',
             size: 'md',
             block: true,
@@ -756,8 +766,12 @@ export function BattleScreen() {
       sfx.correct(state.streak);
       revealMyCaption(question.correct_answer);
       state.myCorrect += 1;
-      state.myScore += 100 + (state.streak > 1 ? (state.streak - 1) * 20 : 0);
+      const pts = 100 + (state.streak > 1 ? (state.streak - 1) * 20 : 0);
+      state.myScore += pts;
       updateArenaScores();
+
+      const chosenBtn = host?.querySelector(`[data-value="${choice}"]`) || document.getElementById('duel-me');
+      triggerCorrectEffect(chosenBtn, pts, state.streak);
     } else {
       state.streak = 0;
       sfx.wrong();
@@ -960,31 +974,46 @@ export function BattleScreen() {
 
     const iWon = isBot
       ? state.myScore > state.oppScore
-      : row.winner === state.myId;
+      : (row.winner ? row.winner === state.myId : state.myScore > state.oppScore);
 
-    const isDraw = state.is_draw ?? (state.myScore === state.oppScore);
+    const isDraw = row.is_draw ?? (state.myScore === state.oppScore);
 
     if (iWon) sfx.battleEnd();
     else if (!isDraw) sfx.lose();
 
-    let ratingDelta = result?.rating_delta ?? row.rating_delta ?? 0;
-    let newRating = result?.new_rating ?? null;
+    const ratingDelta = result?.rating_delta ?? (isDraw ? 5 : (iWon ? 25 : -15));
 
-    // Refresh the profile so ratings/coins elsewhere stay accurate
-    if (!isBot) {
-      try {
-        const refreshed = await fetchProfile();
-        applyProfile(refreshed);
-        newRating = refreshed.rating;
-      } catch {
-        // non-fatal
+    // Persist battle results to update stats, rating, coins, and battle score
+    let battleRecord = null;
+    try {
+      battleRecord = await recordBattleResult({
+        myScore: state.myScore,
+        oppScore: state.oppScore,
+        won: iWon,
+        isDraw,
+        ratingDelta,
+      });
+
+      if (battleRecord?.profile) {
+        applyProfile(battleRecord.profile);
       }
+    } catch (err) {
+      console.warn('[battle] recordBattleResult failed:', err);
     }
 
-    showBattleResult({ iWon, isDraw, ratingDelta, newRating, isBot });
+    const newRating = battleRecord?.newRating ?? ((getState().profile?.rating ?? 1000) + ratingDelta);
+
+    showBattleResult({
+      iWon,
+      isDraw,
+      ratingDelta,
+      newRating,
+      coinsEarned: battleRecord?.coinsEarned ?? (iWon ? 50 : 20),
+      isBot,
+    });
   }
 
-  function showBattleResult({ iWon, isDraw, ratingDelta, newRating, isBot }) {
+  function showBattleResult({ iWon, isDraw, ratingDelta, newRating, coinsEarned, isBot }) {
     const title = isDraw ? 'Seri!' : iWon ? 'Kamu Menang!' : 'Kamu Kalah';
     const tone = isDraw ? 'draw' : iWon ? 'win' : 'lose';
     const icon = isDraw ? '🤝' : iWon ? '🏆' : '💔';
@@ -995,6 +1024,8 @@ export function BattleScreen() {
       content: el('div', {},
         el('div', { class: `result-badge result-badge--${tone}` }, icon),
         el('h2', { class: 't-title t-center' }, title),
+        el('p', { class: 't-subtitle t-center', style: { fontSize: '12px', marginTop: '2px' } },
+          isBot ? 'Pertandingan Latihan vs Bot' : 'Pertandingan Ranked 1v1'),
 
         el('div', { class: 'battle-vs', style: { marginTop: '16px' } },
           el('div', { class: 'battle-vs__side' },
@@ -1012,20 +1043,34 @@ export function BattleScreen() {
           ),
         ),
 
-        isBot
-          ? el('p', { class: 't-subtitle t-center', style: { marginTop: '12px' } },
-              'Pertandingan latihan bot — rating tidak berubah.')
-          : el('div', { class: 'row', style: { justifyContent: 'center', marginTop: '14px' } },
-              el('span', {
-                class: `rating-delta rating-delta--${ratingDelta >= 0 ? 'up' : 'down'}`,
-              }, `${ratingDelta >= 0 ? '+' : ''}${ratingDelta} RR`),
-              newRating
-                ? el('span', { class: 'card__hint', style: { marginLeft: '10px' } },
-                    `Rating: ${newRating}`)
-                : null,
-            ),
+        // Rating, Points, & Reward Summary
+        el('div', {
+          class: 'card',
+          style: {
+            margin: '14px 0 0',
+            padding: '12px 14px',
+            background: 'var(--surface-card)',
+            border: '1.5px solid var(--line-soft)',
+          },
+        },
+          el('div', { class: 'row-between', style: { marginBottom: '6px' } },
+            el('span', { class: 't-label' }, 'Perubahan Rating'),
+            el('span', {
+              class: `rating-delta rating-delta--${ratingDelta >= 0 ? 'up' : 'down'}`,
+              style: { fontWeight: '800' },
+            }, `${ratingDelta >= 0 ? '+' : ''}${ratingDelta} RR (${newRating} RR)`),
+          ),
+          el('div', { class: 'row-between', style: { marginBottom: '6px' } },
+            el('span', { class: 't-label' }, 'Poin Battle Diperoleh'),
+            el('b', { style: { color: 'var(--coral-500)' } }, `+${formatNumber(state.myScore)} Poin`),
+          ),
+          el('div', { class: 'row-between' },
+            el('span', { class: 't-label' }, 'Hadiah Koin'),
+            el('b', { style: { color: 'var(--gold-500)' } }, `+${coinsEarned} 🪙`),
+          ),
+        ),
 
-        el('div', { class: 'dialog__actions' },
+        el('div', { class: 'dialog__actions', style: { marginTop: '14px' } },
           Button({
             label: 'Cari Lawan Lagi',
             variant: 'gold',
@@ -1048,7 +1093,7 @@ export function BattleScreen() {
             },
           }),
           Button({
-            label: 'Kembali ke Home',
+            label: 'Kembali ke Beranda',
             variant: 'ghost',
             block: true,
             onClick: () => {

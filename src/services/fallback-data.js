@@ -22,13 +22,15 @@ export const DEFAULT_PROFILE = {
   premium_until: null,
   daily_streak: 1,
   last_daily_claim: null,
-  rating: 1200,
-  ranked_wins: 12,
-  ranked_losses: 3,
-  ranked_draws: 1,
-  total_score: 12450,
-  stages_cleared: 1,
-  total_stars: 3,
+  rating: 1000,
+  ranked_wins: 0,
+  ranked_losses: 0,
+  ranked_draws: 0,
+  total_score: 0,
+  stage_score: 0,
+  battle_score: 0,
+  stages_cleared: 0,
+  total_stars: 0,
   sound_enabled: true,
   haptics_enabled: true,
 };
@@ -93,16 +95,33 @@ export const DEFAULT_QUESTIONS = RAW_QUESTION_BANK.map((item, idx) => ({
   category: idx >= 20 ? 'jomok' : 'suki',
 }));
 
-export const DEFAULT_LEADERBOARD = [
-  { userId: 'u1', name: 'RakoSantuy', avatar: '😎', score: 12450, rating: 1850, stars: 28, wins: 48, losses: 10, isPremium: true },
-  { userId: 'u2', name: 'Luna', avatar: '🐱', score: 11870, rating: 1780, stars: 26, wins: 42, losses: 12, isPremium: false },
-  { userId: 'u3', name: 'KucingOren', avatar: '🦁', score: 10920, rating: 1650, stars: 24, wins: 39, losses: 14, isPremium: false },
-  { userId: 'u4', name: 'DikaGame', avatar: '🎮', score: 9850, rating: 1540, stars: 21, wins: 35, losses: 15, isPremium: true },
-  { userId: 'u5', name: 'Fahmi17', avatar: '🔥', score: 8760, rating: 1490, stars: 18, wins: 31, losses: 18, isPremium: false },
-  { userId: 'u6', name: 'BudiSigma', avatar: '🗿', score: 7920, rating: 1410, stars: 16, wins: 28, losses: 19, isPremium: false },
-  { userId: 'u7', name: 'RusdiLover', avatar: '💈', score: 7150, rating: 1380, stars: 14, wins: 25, losses: 20, isPremium: false },
-  { userId: 'u8', name: 'AmbaFan', avatar: '👑', score: 6840, rating: 1320, stars: 12, wins: 22, losses: 21, isPremium: false },
+export const DEFAULT_LEADERBOARD_TOURNAMENT = [
+  { userId: 'u1', name: 'RakoSantuy', avatar: '😎', rating: 1850, battle_score: 8450, wins: 48, losses: 10, isPremium: true },
+  { userId: 'u2', name: 'Luna', avatar: '🐱', rating: 1780, battle_score: 7870, wins: 42, losses: 12, isPremium: false },
+  { userId: 'u3', name: 'KucingOren', avatar: '🦁', rating: 1650, battle_score: 6920, wins: 39, losses: 14, isPremium: false },
+  { userId: 'u4', name: 'DikaGame', avatar: '🎮', rating: 1540, battle_score: 5850, wins: 35, losses: 15, isPremium: true },
+  { userId: 'u5', name: 'Fahmi17', avatar: '🔥', rating: 1490, battle_score: 4760, wins: 31, losses: 18, isPremium: false },
+  { userId: 'u6', name: 'BudiSigma', avatar: '🗿', rating: 1410, battle_score: 3920, wins: 28, losses: 19, isPremium: false },
+  { userId: 'u7', name: 'RusdiLover', avatar: '💈', rating: 1380, battle_score: 3150, wins: 25, losses: 20, isPremium: false },
+  { userId: 'u8', name: 'AmbaFan', avatar: '👑', rating: 1320, battle_score: 2840, wins: 22, losses: 21, isPremium: false },
+  { userId: 'u9', name: 'FuadSparta', avatar: '⚔️', rating: 1250, battle_score: 2400, wins: 19, losses: 22, isPremium: false },
+  { userId: 'u10', name: 'SigmaBoy', avatar: '🗿', rating: 1180, battle_score: 1950, wins: 15, losses: 23, isPremium: false },
 ];
+
+export const DEFAULT_LEADERBOARD_GLOBAL = [
+  { userId: 'u1', name: 'RakoSantuy', avatar: '😎', stage_score: 14200, score: 14200, stars: 30, stages_cleared: 10, isPremium: true },
+  { userId: 'u2', name: 'Luna', avatar: '🐱', stage_score: 13450, score: 13450, stars: 29, stages_cleared: 10, isPremium: false },
+  { userId: 'u3', name: 'KucingOren', avatar: '🦁', stage_score: 12100, score: 12100, stars: 27, stages_cleared: 9, isPremium: false },
+  { userId: 'u4', name: 'DikaGame', avatar: '🎮', stage_score: 10850, score: 10850, stars: 25, stages_cleared: 9, isPremium: true },
+  { userId: 'u5', name: 'Fahmi17', avatar: '🔥', stage_score: 9600, score: 9600, stars: 22, stages_cleared: 8, isPremium: false },
+  { userId: 'u6', name: 'BudiSigma', avatar: '🗿', stage_score: 8400, score: 8400, stars: 19, stages_cleared: 7, isPremium: false },
+  { userId: 'u7', name: 'RusdiLover', avatar: '💈', stage_score: 7250, score: 7250, stars: 16, stages_cleared: 6, isPremium: false },
+  { userId: 'u8', name: 'AmbaFan', avatar: '👑', stage_score: 6100, score: 6100, stars: 14, stages_cleared: 5, isPremium: false },
+  { userId: 'u9', name: 'FuadSparta', avatar: '⚔️', stage_score: 4950, score: 4950, stars: 11, stages_cleared: 4, isPremium: false },
+  { userId: 'u10', name: 'SigmaBoy', avatar: '🗿', stage_score: 3800, score: 3800, stars: 8, stages_cleared: 3, isPremium: false },
+];
+
+export const DEFAULT_LEADERBOARD = DEFAULT_LEADERBOARD_TOURNAMENT;
 
 export const DEFAULT_SHOP_ITEMS = [
   { id: 1, sku: 'lives_refill', title: 'Refill Nyawa', subtitle: '+5 nyawa langsung', price: 10000, category: 'lives', icon: '❤️' },
@@ -184,16 +203,54 @@ export function recordLocalStageResult(stageId, score, stars) {
     next.unlocked = true;
   }
 
-  // Recalculate total stars
+  // Recalculate total stars and cleared stages
   const totalStars = stages.reduce((acc, s) => acc + (s.stars || 0), 0);
+  const stagesCleared = stages.filter((s) => s.cleared).length;
   store.stageProgress.totalStars = totalStars;
 
   // Add score & coins to profile
   const coinsEarned = stars * 50;
-  store.profile.total_score = (store.profile.total_score || 0) + score;
+  store.profile.stage_score = (store.profile.stage_score || 0) + score;
+  store.profile.total_score = (store.profile.stage_score || 0) + (store.profile.battle_score || 0);
   store.profile.total_stars = totalStars;
+  store.profile.stages_cleared = stagesCleared;
   store.profile.coins = (store.profile.coins || 0) + coinsEarned;
 
   saveLocalStore(store);
-  return { coins_earned: coinsEarned, totalStars };
+  return {
+    coins_earned: coinsEarned,
+    totalStars,
+    stagesCleared,
+    profile: store.profile,
+    stageProgress: store.stageProgress,
+  };
 }
+
+export function recordLocalBattleResult({ myScore = 0, oppScore = 0, won = false, isDraw = false, ratingDelta = 0 }) {
+  const store = getLocalStore();
+  const currentRating = store.profile.rating || 1000;
+  const newRating = Math.max(100, currentRating + ratingDelta);
+
+  store.profile.rating = newRating;
+  if (won) {
+    store.profile.ranked_wins = (store.profile.ranked_wins || 0) + 1;
+  } else if (isDraw) {
+    store.profile.ranked_draws = (store.profile.ranked_draws || 0) + 1;
+  } else {
+    store.profile.ranked_losses = (store.profile.ranked_losses || 0) + 1;
+  }
+
+  const coinsEarned = won ? 50 : (isDraw ? 25 : 15);
+  store.profile.battle_score = (store.profile.battle_score || 0) + myScore;
+  store.profile.total_score = (store.profile.stage_score || 0) + (store.profile.battle_score || 0);
+  store.profile.coins = (store.profile.coins || 0) + coinsEarned;
+
+  saveLocalStore(store);
+  return {
+    newRating,
+    ratingDelta,
+    coinsEarned,
+    profile: store.profile,
+  };
+}
+

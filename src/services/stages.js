@@ -3,7 +3,7 @@
  * Single-player stage mode: the stage map, question runs, and results.
  */
 import { supabase, rpc } from './supabase.js';
-import { QUESTIONS_PER_STAGE, BASE_POINTS, STREAK_BONUS, MAX_STREAK_BONUS } from '../config/game.js';
+import { QUESTIONS_PER_STAGE, BASE_POINTS, STREAK_BONUS, MAX_STREAK_BONUS, SPEED_BONUS_MAX } from '../config/game.js';
 import {
   DEFAULT_STAGES,
   DEFAULT_QUESTIONS,
@@ -381,6 +381,9 @@ export async function recordStageResult(arg1, arg2, arg3, arg4, arg5) {
     ? stars
     : (calculatedAccuracy >= 100 ? 3 : (calculatedAccuracy >= 80 ? 2 : (calculatedAccuracy >= 60 ? 1 : 0)));
 
+  // Always record locally to guarantee instant persistence & reactivity
+  const localRes = recordLocalStageResult(stageId, score, finalStars);
+
   try {
     const res = await rpc('record_stage_result', {
       p_stage_id: stageId,
@@ -389,12 +392,12 @@ export async function recordStageResult(arg1, arg2, arg3, arg4, arg5) {
       p_total: stageTotal,
       p_max_streak: maxStreak || 0,
     });
-    if (res) return res;
+    if (res) return { ...localRes, ...res };
   } catch (err) {
-    console.warn('[stages] record_stage_result RPC failed, saving locally:', err.message);
+    console.warn('[stages] record_stage_result RPC failed, relying on local:', err.message);
   }
 
-  return recordLocalStageResult(stageId, score, finalStars);
+  return localRes;
 }
 
 // ============================================================
@@ -455,7 +458,7 @@ export function scoreAnswer({ isCorrect, streak, secondsLeft, timeLimit }) {
   if (!isCorrect) return 0;
 
   const streakBonus = Math.min(STREAK_BONUS * Math.max(0, streak - 1), MAX_STREAK_BONUS);
-  const speedBonus = Math.round(50 * Math.max(0, secondsLeft / Math.max(1, timeLimit)));
+  const speedBonus = Math.round(SPEED_BONUS_MAX * Math.max(0, secondsLeft / Math.max(1, timeLimit)));
 
   return BASE_POINTS + streakBonus + speedBonus;
 }

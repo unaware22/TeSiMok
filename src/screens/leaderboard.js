@@ -22,19 +22,24 @@ import { formatNumber, formatCountdownHuman } from '../lib/format.js';
 import { handleNav } from './home.js';
 
 export function LeaderboardScreen({ tab = 'tournament' } = {}) {
+  let isMounted = true;
   let activeTab = tab;
   let entries = DEFAULT_LEADERBOARD.slice(0, 15);
   let myRank = null;
   let countdownId = null;
+  let currentLoadId = 0;
 
   render();
   load();
 
   async function load() {
+    const loadId = ++currentLoadId;
     try {
       const data = activeTab === 'tournament'
         ? await fetchTournamentBoard(50)
         : await fetchGlobalBoard(50);
+
+      if (!isMounted || loadId !== currentLoadId) return;
 
       if (data && data.length > 0) {
         entries = data;
@@ -42,16 +47,19 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
 
       const { profile } = getState();
       if (profile?.id) {
-        myRank = await fetchMyRank(profile.id, activeTab).catch(() => null);
+        myRank = await fetchMyRank(profile.id, activeTab, entries).catch(() => null);
       }
     } catch (err) {
       console.warn('[leaderboard] load error:', err);
     } finally {
-      render();
+      if (isMounted && loadId === currentLoadId) {
+        render();
+      }
     }
   }
 
   function render() {
+    if (!isMounted) return;
     const medals = ['🥇', '🥈', '🥉'];
     const myId = getState().profile?.id;
 
@@ -143,14 +151,28 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
                 el('div', { class: 'grow' },
                   el('div', { class: 'card__title' }, 'Peringkat Kamu'),
                   el('div', { class: 'card__hint' },
-                    activeTab === 'tournament' && myRank.rating
-                      ? `${myRank.rating} RR · Terus bertanding di battle ranked untuk naik!`
-                      : 'Terus taklukkan stage untuk menambah skor dan bintang!'),
+                    activeTab === 'tournament'
+                      ? `${myRank.wins ?? 0} Menang · ${myRank.losses ?? 0} Kalah · ${myRank.rating ?? 1000} RR`
+                      : `${myRank.stars ?? 0}/30 ⭐ · Stage ${myRank.stages_cleared ?? 0}/10 Selesai`),
                 ),
-                el('div', { class: 'board-row__score', style: { fontWeight: '800', color: 'var(--text-primary)', fontSize: '1.05rem' } },
+                el('div', { style: { textAlign: 'right' } },
+                  el('div', {
+                    class: 'board-row__score',
+                    style: {
+                      fontWeight: '800',
+                      color: activeTab === 'tournament' ? 'var(--coral-500)' : 'var(--gold-400)',
+                      fontSize: '1.05rem',
+                    },
+                  },
+                    activeTab === 'tournament'
+                      ? `${myRank.rating ?? 1000} RR`
+                      : `${formatNumber(myRank.stage_score || myRank.points || 0)} Poin`),
                   activeTab === 'tournament'
-                    ? `${myRank.rating ?? myRank.points ?? 1000} RR`
-                    : `${formatNumber(myRank.points || 0)} Poin`),
+                    ? el('div', { style: { fontSize: '0.72rem', color: 'var(--text-secondary)' } },
+                        `${formatNumber(myRank.battle_score || myRank.points || 0)} Poin Battle`)
+                    : el('div', { style: { fontSize: '0.72rem', color: 'var(--text-secondary)' } },
+                        'Poin Petualangan'),
+                ),
               ),
             )
           : null,
@@ -234,7 +256,7 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
       ),
 
       // Name & subtitle
-      el('div', { class: 'grow' },
+      el('div', { class: 'grow', style: { minWidth: 0 } },
         el('div', {
           style: {
             fontSize: '0.95rem',
@@ -243,9 +265,10 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
+            minWidth: 0,
           },
         },
-          name,
+          el('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, name),
           isMe ? Badge({ label: 'Kamu', variant: 'mint' }) : null,
           entry.isPremium ? el('span', { title: 'Premium' }, '👑') : null,
         ),
@@ -258,23 +281,28 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
         },
           activeTab === 'tournament'
             ? `${entry.wins ?? 0} Menang · ${entry.losses ?? 0} Kalah`
-            : `${entry.stars ?? 0} ⭐ Bintang Stage`,
+            : `${entry.stars ?? 0}/30 ⭐ · Stage ${entry.stages_cleared || Math.min(10, Math.ceil((entry.stars ?? 0) / 3))}/10 Selesai`,
         ),
       ),
 
       // Score / Rating
-      el('div', {
-        style: {
-          fontWeight: '800',
-          fontSize: '1rem',
-          fontFamily: 'var(--font-display)',
-          color: activeTab === 'tournament' ? 'var(--coral-500)' : 'var(--gold-400)',
-          textAlign: 'right',
+      el('div', { style: { textAlign: 'right', flex: '0 0 auto' } },
+        el('div', {
+          style: {
+            fontWeight: '800',
+            fontSize: '1rem',
+            fontFamily: 'var(--font-display)',
+            color: activeTab === 'tournament' ? 'var(--coral-500)' : 'var(--gold-400)',
+          },
         },
-      },
+          activeTab === 'tournament'
+            ? `${entry.rating ?? 1000} RR`
+            : `${formatNumber(entry.stage_score || entry.score || 0)} Poin`),
         activeTab === 'tournament'
-          ? `${entry.rating ?? entry.score ?? 1000} RR`
-          : `${formatNumber(entry.score ?? 0)} Poin`,
+          ? el('div', { style: { fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '1px' } },
+              `${formatNumber(entry.battle_score || entry.score || 0)} Poin Battle`)
+          : el('div', { style: { fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '1px' } },
+              'Poin Stage'),
       ),
     );
   }
@@ -293,5 +321,8 @@ export function LeaderboardScreen({ tab = 'tournament' } = {}) {
     }, 1000);
   }
 
-  return () => clearInterval(countdownId);
+  return () => {
+    isMounted = false;
+    clearInterval(countdownId);
+  };
 }

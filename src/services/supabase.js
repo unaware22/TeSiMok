@@ -47,7 +47,26 @@ export async function signIn(email, password) {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  let error = null;
+  try {
+    const res = await Promise.race([
+      supabase.auth.signOut(),
+      new Promise((resolve) => setTimeout(() => resolve({ error: null }), 1800)),
+    ]);
+    if (res?.error) error = res.error;
+  } catch (err) {
+    error = err;
+  }
+
+  try {
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('sb-') || k.includes('supabase'))) toRemove.push(k);
+    }
+    toRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+
   return { error };
 }
 

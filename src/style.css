@@ -6,6 +6,11 @@
 @import './styles/components.css';
 @import './styles/screens.css';
 
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
 /* ============================================================
    Anti-select, Anti-copy, and Cursor Control
    Content cannot be selected or copied; no text I-beam hover cursor

@@ -126,9 +126,24 @@ export function applyProfile(profile) {
 }
 
 export function clearSession() {
+  stopLifeTicker();
   try {
     localStorage.removeItem(AUTH_CACHE_KEY);
+    // Remove all Supabase auth keys from localStorage
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth_session'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
   } catch {}
+
+  try {
+    sessionStorage.clear();
+  } catch {}
+
   setState({
     user: null,
     profile: null,

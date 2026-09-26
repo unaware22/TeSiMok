@@ -12,6 +12,7 @@ import { supabase, rpc } from './supabase.js';
 import { fetchProfilesMap } from './profile.js';
 import { normaliseQuestion } from './stages.js';
 import { BATTLE_POINTS_PER_CORRECT, BATTLE_STREAK_BONUS } from '../config/game.js';
+import { recordLocalBattleResult } from './fallback-data.js';
 
 // ============================================================
 // Matchmaking
@@ -96,6 +97,32 @@ export async function submitBattleAnswer(battleId, questionId, answer) {
 /** Finalise and settle ratings. Safe to call from either client. */
 export async function settleBattle(battleId) {
   return rpc('finish_battle', { p_battle_id: battleId });
+}
+
+/** Record match result and update local & remote profile ratings, stats, and scores. */
+export async function recordBattleResult({ myScore = 0, oppScore = 0, won = false, isDraw = false, ratingDelta = 0 }) {
+  const localRes = recordLocalBattleResult({ myScore, oppScore, won, isDraw, ratingDelta });
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) {
+      await supabase
+        .from('profiles')
+        .update({
+          rating: localRes.newRating,
+          ranked_wins: localRes.profile.ranked_wins,
+          ranked_losses: localRes.profile.ranked_losses,
+          ranked_draws: localRes.profile.ranked_draws,
+          coins: localRes.profile.coins,
+          total_score: localRes.profile.total_score,
+        })
+        .eq('id', user.id);
+    }
+  } catch (err) {
+    console.warn('[battle] remote profile sync skipped:', err.message);
+  }
+
+  return localRes;
 }
 
 /** Which questions has this player already answered in this battle? */

@@ -30,6 +30,8 @@ import { getTheme, toggleTheme, ThemeToggleBtn } from '../lib/theme.js';
 const AVATAR_CHOICES = ['😎', '🤣', '🔥', '👑', '🐉', '💀', '🦁', '👽', '🤖', '🐸', '🎭', '🐼'];
 
 export function ProfileScreen() {
+  let isMounted = true;
+
   render();
   loadExtras();
 
@@ -40,6 +42,7 @@ export function ProfileScreen() {
         fetchStickerCatalogue().catch(() => []),
         fetchOwnedStickers().catch(() => []),
       ]);
+      if (!isMounted) return;
       render({ progress, stickerCount: stickers.length, ownedCount: owned.length });
     } catch (err) {
       console.warn('[profile] extras failed:', err.message);
@@ -47,6 +50,7 @@ export function ProfileScreen() {
   }
 
   function render({ progress = null, stickerCount = 0, ownedCount = 0 } = {}) {
+    if (!isMounted) return;
     const { profile, lifeState } = getState();
 
     if (!profile) {
@@ -54,10 +58,10 @@ export function ProfileScreen() {
         el('div', { class: 'shell' },
           TopBar({ title: 'Profil', onBack: () => router.navigate('home') }),
           el('div', { class: 'empty' },
-            el('div', { class: 'empty__icon' }, '🕵️'),
-            el('div', { class: 'empty__title' }, 'Kamu bermain sebagai tamu'),
+            el('div', { class: 'empty__icon' }, '🔐'),
+            el('div', { class: 'empty__title' }, 'Belum Masuk Akun'),
             el('div', { class: 'empty__text' },
-              'Masuk untuk menyimpan progres, rating, dan koleksi stikermu.'),
+              'Masuk atau daftar akun untuk menyimpan progres, rating turnamen, dan koleksi stikermu.'),
           ),
           Button({
             label: 'Masuk / Daftar',
@@ -340,24 +344,67 @@ export function ProfileScreen() {
   // ============================================================
 
   function openHistory() {
-    const { profile } = getState();
+    const { profile, stageProgress } = getState();
+    const stagesCleared = profile?.stages_cleared ?? stageProgress?.stages?.filter((s) => s.cleared).length ?? 0;
+    const totalStars = stageProgress?.totalStars ?? profile?.total_stars ?? 0;
+    const stageScore = profile?.stage_score ?? (profile?.total_score ? Math.round(profile.total_score * 0.6) : 0);
+    const battleScore = profile?.battle_score ?? 0;
+    const totalScore = (profile?.stage_score !== undefined || profile?.battle_score !== undefined)
+      ? (stageScore + battleScore)
+      : (profile?.total_score ?? 0);
+
+    const wins = profile?.ranked_wins ?? 0;
+    const losses = profile?.ranked_losses ?? 0;
+    const draws = profile?.ranked_draws ?? 0;
+    const totalBattles = wins + losses + draws;
+    const winRate = totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0;
+    const rating = profile?.rating ?? 1000;
 
     openSheet({
       content: el('div', { class: 'stack stack-3' },
-        el('h2', { class: 't-title' }, '🕒 Riwayat Permainan'),
+        el('h2', { class: 't-title' }, '📊 Statistik & Riwayat Pemain'),
+
+        // Card 1: Statistik Petualangan Stage
         el('div', { class: 'card', style: { padding: '16px' } },
+          el('div', { class: 'card__head', style: { marginBottom: '8px' } },
+            el('div', { class: 'card__title' }, '🎯 Petualangan Stage'),
+            Badge({ label: `${stagesCleared}/10 Selesai`, variant: stagesCleared === 10 ? 'gold' : 'sky' }),
+          ),
           el('div', { class: 'stat-grid' },
-            Stat({ value: `${profile?.stages_cleared ?? 1}/10`, label: 'Stage Selesai' }),
-            Stat({ value: `${profile?.total_stars ?? 3}`, label: 'Total Bintang ⭐' }),
-            Stat({ value: formatNumber(profile?.total_score ?? 12450), label: 'Total Skor' }),
+            Stat({ value: `${stagesCleared}/10`, label: 'Stage Selesai' }),
+            Stat({ value: `${totalStars}/30 ⭐`, label: 'Total Bintang' }),
+            Stat({ value: formatNumber(stageScore), label: 'Poin Stage' }),
           ),
         ),
+
+        // Card 2: Statistik Battle Ranked 1v1
         el('div', { class: 'card', style: { padding: '16px' } },
-          el('div', { class: 'card__title', style: { marginBottom: '8px' } }, '⚔️ Statistik Battle Ranked'),
-          el('div', { class: 'stat-grid' },
-            Stat({ value: `${profile?.ranked_wins ?? 0}`, label: 'Menang' }),
-            Stat({ value: `${profile?.ranked_losses ?? 0}`, label: 'Kalah' }),
-            Stat({ value: `${profile?.ranked_draws ?? 0}`, label: 'Seri' }),
+          el('div', { class: 'card__head', style: { marginBottom: '8px' } },
+            el('div', { class: 'card__title' }, '⚔️ Battle Ranked 1v1'),
+            Badge({ label: `${rating} RR`, variant: 'coral' }),
+          ),
+          el('div', { class: 'stat-grid', style: { marginBottom: '8px' } },
+            Stat({ value: `${wins}`, label: 'Menang (W)' }),
+            Stat({ value: `${losses}`, label: 'Kalah (L)' }),
+            Stat({ value: `${draws}`, label: 'Seri (D)' }),
+          ),
+          el('div', { class: 'row-between', style: { borderTop: '1px solid var(--line-soft)', paddingTop: '10px', marginTop: '6px' } },
+            el('span', { class: 't-subtitle', style: { fontSize: '12px' } }, `Win Rate: ${winRate}% (${totalBattles} Pertandingan)`),
+            el('b', { style: { color: 'var(--coral-500)', fontSize: '13px' } }, `${formatNumber(battleScore)} Poin Battle`),
+          ),
+        ),
+
+        // Card 3: Total Skor Keseluruhan
+        el('div', { class: 'card', style: { padding: '12px 16px', background: 'var(--grad-navy)', color: '#FFF' } },
+          el('div', { class: 'row-between', style: { alignItems: 'center' } },
+            el('div', {},
+              el('div', { style: { fontSize: '0.8rem', opacity: '0.85' } }, 'Total Skor Keseluruhan'),
+              el('div', { style: { fontSize: '1.4rem', fontWeight: '900', color: '#FFF' } }, formatNumber(totalScore)),
+            ),
+            el('div', { style: { textAlign: 'right' } },
+              el('div', { style: { fontSize: '0.8rem', opacity: '0.85' } }, 'Koin Dimiliki'),
+              el('div', { style: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--gold-400)' } }, `${formatNumber(profile?.coins ?? 0)} 🪙`),
+            ),
           ),
         ),
       ),
@@ -438,9 +485,10 @@ export function ProfileScreen() {
   async function handleLogout() {
     const confirmed = await confirmDialog({
       title: 'Keluar dari akun?',
-      body: 'Progres yang tersimpan di perangkat ini tetap aman.',
+      body: 'Kamu akan keluar dari sesi ini. Progres yang tersimpan di perangkat tetap aman.',
       confirmLabel: 'Keluar',
       cancelLabel: 'Batal',
+      danger: true,
     });
 
     if (!confirmed) return;
@@ -451,7 +499,12 @@ export function ProfileScreen() {
       // ignore
     }
     clearSession();
-    toast('Berhasil keluar.', 'ok');
-    router.navigate('auth');
+    router.resetHistory();
+    toast('Berhasil keluar dari akun.', 'ok');
+    router.navigate('auth', {}, { replace: true });
   }
+
+  return () => {
+    isMounted = false;
+  };
 }
